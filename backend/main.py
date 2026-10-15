@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 from summarizer import generate_summary
 
-
 app = FastAPI(title="Text Summarizer API")
 
 app.add_middleware(
@@ -16,6 +15,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "https://text-summarizer-mauve-six.vercel.app",
     ],
     allow_credentials=False,
     allow_methods=["GET", "POST"],
@@ -46,26 +46,22 @@ def health():
         "transformers_path": transformers.__file__,
     }
 
+
 @app.post("/api/summarize", response_model=SummarizeResponse)
 def summarize(request: SummarizeRequest):
     text = request.text.strip()
 
     if not text:
-        raise HTTPException(
-            status_code=400,
-            detail="Please provide text to summarize."
-        )
+        raise HTTPException(status_code=400, detail="Please provide text to summarize.")
 
     if request.model not in {"textrank", "t5", "bart"}:
         raise HTTPException(
-            status_code=400,
-            detail="Model must be textrank, t5, or bart."
+            status_code=400, detail="Model must be textrank, t5, or bart."
         )
 
     if request.summary_length not in {"short", "medium", "long"}:
         raise HTTPException(
-            status_code=400,
-            detail="Length must be short, medium, or long."
+            status_code=400, detail="Length must be short, medium, or long."
         )
 
     try:
