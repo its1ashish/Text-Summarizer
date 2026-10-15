@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pydantic
+transformers>=4.46,<5
+torch
+sumy
+nltk
+sentencepiece

@@ -1,0 +1,13 @@
+
+# Python virtual environments
+.venv/
+backend/.venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
