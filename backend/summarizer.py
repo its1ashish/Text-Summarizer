@@ -1,6 +1,10 @@
 
 from functools import lru_cache
 
+import nltk
+
+nltk.download("punkt_tab", quiet=True)
+
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.text_rank import TextRankSummarizer
