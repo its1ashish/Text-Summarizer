@@ -10,6 +10,7 @@ A text summarization web application that generates concise summaries using extr
 - **Summary length selection:** Choose short, medium, or long summaries.
 - **Model comparison:** Generate summaries using all three models and compare their results.
 - **Summary statistics:** View original and summarized word counts and processing time.
+- **Accounts and history:** Register or log in to save summaries and revisit them later.
 - **Copy summary:** Copy generated summaries to the clipboard.
 - **REST API:** Generate summaries through a FastAPI backend.
 
@@ -117,6 +118,14 @@ npm run dev
 Open the local URL displayed by Vite, usually `http://localhost:5173/`.
 
 ## API Reference
+
+### Accounts and history
+
+- `POST /api/auth/register` and `POST /api/auth/login` accept an email and password (at least 8 characters) and return a bearer token.
+- Send `Authorization: Bearer <token>` to `GET /api/auth/me` and `GET /api/history`.
+- Summaries generated with a valid bearer token are saved in the account's history. Anonymous summarization remains available.
+- User passwords are stored as PBKDF2 hashes. SQLite data is stored in `backend/summarizer.db` by default.
+- Set `AUTH_SECRET` to a long, random value and optionally `DATABASE_PATH` before deployment. The built-in secret is for local development only; changing it invalidates existing login tokens.
 
 ### `POST /api/summarize`
 

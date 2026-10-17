@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
-import { summarizeText } from "./services/api";
+import { authenticate, getCurrentUser, getHistory, saveSummary, summarizeText } from "./services/api";
 
 const models = [
   {
@@ -34,6 +34,52 @@ function App() {
   const [copyStatus, setCopyStatus] = useState("");
   const [comparisonResults, setComparisonResults] = useState([]);
   const [comparing, setComparing] = useState(false);
+  const [user, setUser] = useState(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authStatus, setAuthStatus] = useState("");
+  const [view, setView] = useState("summarizer");
+  const [history, setHistory] = useState([]);
+  const [afterAuthView, setAfterAuthView] = useState("history");
+  const [saveAfterAuth, setSaveAfterAuth] = useState(false);
+
+  useEffect(() => {
+    if (localStorage.getItem("summarizer-token")) {
+      getCurrentUser().then(setUser).catch(() => localStorage.removeItem("summarizer-token"));
+    }
+  }, []);
+
+  async function handleAuth(event) {
+    event.preventDefault();
+    setAuthStatus("");
+    try {
+      const result = await authenticate(view === "register" ? "register" : "login", email, password);
+      localStorage.setItem("summarizer-token", result.token);
+      setUser(result.user);
+      setPassword("");
+      setAuthStatus("");
+      if (saveAfterAuth && summary) {
+        await saveSummary(summary, text.trim(), summaryLength);
+        setSaveAfterAuth(false);
+      }
+      const destination = afterAuthView;
+      if (destination === "history") setHistory(await getHistory());
+      setView(destination);
+    } catch (error) {
+      setAuthStatus(error.message);
+    }
+  }
+
+  async function showHistory() {
+    if (!user) {
+      setAfterAuthView("history");
+      setView("login");
+      setAuthStatus("");
+      return;
+    }
+    setView("history");
+    try { setHistory(await getHistory()); } catch (error) { setAuthStatus(error.message); }
+  }
 
   const wordCount = text.trim()
     ? text.trim().split(/\s+/).length
@@ -83,6 +129,7 @@ function App() {
       });
 
       setSummary(data);
+      if (user) setHistory(await getHistory());
     } catch (error) {
       setStatus(
         error.message ||
@@ -188,16 +235,16 @@ function App() {
         <div className="sidebar-label">WORKSPACE</div>
 
         <nav className="navigation">
-          <a className="nav-item active" href="#summarizer">
+          <button className={`nav-item ${view === "summarizer" ? "active" : ""}`} onClick={() => setView("summarizer")} type="button">
             <span className="nav-symbol">▤</span>
             Summarizer
-          </a>
+          </button>
 
-          <a className="nav-item" href="#history">
+          <button className={`nav-item ${view === "history" ? "active" : ""}`} onClick={showHistory} type="button">
             <span className="nav-symbol">◷</span>
             History
-            <span className="coming-soon">Soon</span>
-          </a>
+            {user && <span className="coming-soon">{history.length}</span>}
+          </button>
         </nav>
 
         <div className="sidebar-bottom">
@@ -219,12 +266,26 @@ function App() {
           <span className="breadcrumb">
             Workspace <span>/</span> Summarizer
           </span>
-          <span className="prototype-badge">
-            Frontend prototype
-          </span>
+          {user && <div className="account-actions"><span>{user.email}</span><button className="prototype-badge" onClick={() => { localStorage.removeItem("summarizer-token"); setUser(null); setHistory([]); setView("summarizer"); }} type="button">Log out</button></div>}
         </header>
 
         <section className="page-content">
+          {view === "login" || view === "register" ? <section className="auth-page">
+            <span className="eyebrow">SUMMARAI ACCOUNT</span>
+            <h1>{view === "login" ? "Welcome back" : "Create your account"}</h1>
+            <p>{view === "login" ? "Log in to access your saved summaries." : "Sign up to save summaries and build your history."}</p>
+            <form className="auth-form auth-page-form" onSubmit={handleAuth}>
+              <label>Email address<input id="account-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required /></label>
+              <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" minLength={8} required /></label>
+              {authStatus && <p className="auth-error" role="alert">{authStatus}</p>}
+              <button className="auth-submit" type="submit">{view === "login" ? "Log in" : "Create account"}</button>
+            </form>
+            <p className="auth-switch">{view === "login" ? "New to SummarAI?" : "Already have an account?"} <button className="text-button" type="button" onClick={() => { setView(view === "login" ? "register" : "login"); setAuthStatus(""); }}>{view === "login" ? "Create an account" : "Log in"}</button></p>
+            <button className="text-button auth-back" type="button" onClick={() => setView("summarizer")}>Back to summarizer</button>
+          </section> : view === "history" ? <>
+            <div className="page-heading"><span className="eyebrow">YOUR WORKSPACE</span><h1>Summarization history</h1><p>Review summaries saved to your account.</p></div>
+            {history.length ? <div className="history-list">{history.map((item) => <article className="history-card" key={item.id}><div className="history-meta"><strong>{item.model.toUpperCase()} · {item.summary_length}</strong><time>{new Date(item.created_at).toLocaleString()}</time></div><p className="history-input">{item.input_text}</p><h3>Summary</h3><p className="summary-text">{item.summary}</p><button className="text-button" type="button" onClick={() => { setText(item.input_text); setSelectedModel(item.model); setSummaryLength(item.summary_length); setView("summarizer"); }}>Reuse this text</button></article>)}</div> : <section className="result-card history-empty"><h2>No summaries yet</h2><p>Generate a summary while signed in and it will appear here.</p></section>}
+          </> : <>
           <div className="page-heading">
             <span className="eyebrow">AI-POWERED WRITING TOOL</span>
             <h1>Make your text work smarter.</h1>
@@ -428,6 +489,7 @@ function App() {
                     {copyStatus}
                   </p>
                 )}
+                {!user && <button className="save-history-button" type="button" onClick={() => { setAfterAuthView("history"); setSaveAfterAuth(true); setView("login"); }}>Log in to save this summary</button>}
               </div>
             ) : (
               <div className="empty-result">
@@ -552,6 +614,7 @@ function App() {
           <footer className="page-footer">
             Text Summarizer · Powered by your NLP models
           </footer>
+          </>}
         </section>
       </main>
     </div>

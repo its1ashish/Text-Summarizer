@@ -7,6 +7,8 @@ backend/.venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+backend/summarizer.db
+backend/summarizer.db-*
 
 # Frontend dependencies and build output
 frontend/node_modules/

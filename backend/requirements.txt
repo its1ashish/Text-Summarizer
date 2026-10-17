@@ -6,3 +6,4 @@ torch
 sumy
 nltk
 sentencepiece
+python-dotenv
